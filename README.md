@@ -20,3 +20,13 @@ npm run dev
 ```
 
 本番用ファイルは `npm run build` で `dist/` に生成されます。
+
+## Cloudflare Workersへデプロイ
+
+Cloudflareにログインした環境で、次を実行します。
+
+```bash
+npm run deploy
+```
+
+Viteで生成した `dist/` を、Cloudflare WorkersのStatic Assetsとして配信します。

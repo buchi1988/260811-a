@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="情報量、エントロピー、データ圧縮、通信路容量、相互情報量をインタラクティブに学べる情報理論入門。">
+  <meta name="theme-color" content="#08111f">
+  <title>情報理論入門 — 不確実さを、測る。</title>
+  <style>
+    :root {
+      --ink: #eaf2ff;
+      --muted: #91a4bc;
+      --paper: #08111f;
+      --panel: #0d1a2b;
+      --panel-2: #102138;
+      --line: rgba(171, 196, 222, .16);
+      --cyan: #69e8dd;
+      --cyan-soft: rgba(105, 232, 221, .13);
+      --amber: #ffca72;
+      --amber-soft: rgba(255, 202, 114, .13);
+      --coral: #ff7f73;
+      --white: #fff;
+      --shadow: 0 26px 70px rgba(0, 0, 0, .28);
+      --radius: 28px;
+      --max: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 13% 8%, rgba(34, 94, 132, .24), transparent 30rem),
+        radial-gradient(circle at 84% 22%, rgba(105, 232, 221, .08), transparent 28rem),
+        var(--paper);
+      font-family: Inter, "Hiragino Sans", "Yu Gothic", "YuGothic", Meiryo, system-ui, sans-serif;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    ::selection { color: #07131e; background: var(--cyan); }
+
+    .progress {
+      position: fixed;
+      inset: 0 auto auto 0;
+      z-index: 100;
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--cyan), var(--amber));
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid transparent;
+      background: rgba(8, 17, 31, .72);
+      backdrop-filter: blur(18px);
+      transition: border-color .25s ease;
+    }
+
+    .site-header.is-scrolled { border-color: var(--line); }
+
+    .nav {
+      width: min(calc(100% - 40px), var(--max));
+      height: 72px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--white);
+      text-decoration: none;
+      font-weight: 760;
+      letter-spacing: .02em;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(105, 232, 221, .44);
+      border-radius: 50%;
+      color: var(--cyan);
+      font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      box-shadow: inset 0 0 18px rgba(105, 232, 221, .08);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      transition: color .2s ease;
+    }
+
+    .nav-links a:hover, .nav-links a:focus-visible { color: var(--cyan); }
+
+    main { display: block; }
+
+    .hero {
+      position: relative;
+      width: min(calc(100% - 40px), var(--max));
+      min-height: calc(100svh - 72px);
+      margin: 0 auto;
+      padding: clamp(72px, 10vw, 126px) 0 90px;
+      display: grid;
+      grid-template-columns: 1.03fr .97fr;
+      align-items: center;
+      gap: clamp(48px, 7vw, 92px);
+    }
+
+    .hero::before {
+      content: "01";
+      position: absolute;
+      top: 4%;
+      right: -2%;
+      z-index: -1;
+      color: rgba(255, 255, 255, .018);
+      font: 800 clamp(180px, 29vw, 390px)/1 ui-monospace, monospace;
+      letter-spacing: -.12em;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 22px;
+      color: var(--cyan);
+      font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: currentColor;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 720px;
+      margin-bottom: 28px;
+      font-size: clamp(50px, 7vw, 96px);
+      font-weight: 780;
+      line-height: 1.06;
+      letter-spacing: -.055em;
+    }
+
+    h1 em {
+      color: var(--amber);
+      font-style: normal;
+    }
+
+    .hero-copy {
+      max-width: 590px;
+      margin-bottom: 34px;
+      color: #b0c0d2;
+      font-size: clamp(16px, 1.6vw, 19px);
+      line-height: 1.9;
+    }
+
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50px;
+      padding: 0 22px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 720;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .button.primary {
+      color: #07151f;
+      border-color: var(--cyan);
+      background: var(--cyan);
+    }
+
+    .button:hover, .button:focus-visible {
+      transform: translateY(-2px);
+      border-color: var(--cyan);
+    }
+
+    .button.primary:hover, .button.primary:focus-visible { background: #8ff4eb; }
+
+    .lab-card {
+      position: relative;
+      padding: clamp(25px, 4vw, 38px);
+      border: 1px solid rgba(136, 175, 204, .2);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(17, 37, 60, .94), rgba(10, 23, 39, .94));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .lab-card::after {
+      content: "";
+      position: absolute;
+      right: -110px;
+      bottom: -140px;
+      width: 280px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(105, 232, 221, .15);
+      border-radius: 50%;
+      box-shadow: 0 0 0 38px rgba(105, 232, 221, .025), 0 0 0 78px rgba(105, 232, 221, .018);
+      pointer-events: none;
+    }
+
+    .lab-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .overline {
+      margin-bottom: 7px;
+      color: var(--muted);
+      font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .lab-head h2 {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.35;
+      letter-spacing: -.02em;
+    }
+
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--cyan);
+      font: 700 10px/1 ui-monospace, monospace;
+      letter-spacing: .1em;
+    }
+
+    .live-pill::before {
+      content: "";
+      width: 7px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 0 5px rgba(105, 232, 221, .1);
+    }
+
+    .entropy-display {
+      display: grid;
+      grid-template-columns: 132px 1fr;
+      align-items: center;
+      gap: 26px;
+      margin-bottom: 30px;
+    }
+
+    .coin-ring {
+      --heads: 50%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 132px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: conic-gradient(var(--cyan) 0 var(--heads), rgba(255, 255, 255, .075) var(--heads) 100%);
+    }
+
+    .coin-ring::before {
+      content: "";
+      width: 96px;
+      aspect-ratio: 1;
+      border-radius: inherit;
+      background: #0e1d30;
+      box-shadow: inset 0 0 24px rgba(0, 0, 0, .22);
+    }
+
+    .coin-ring span {
+      position: absolute;
+      color: var(--white);
+      font: 750 22px/1 ui-monospace, monospace;
+    }
+
+    .metric-label {
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric-value {
+      margin-bottom: 5px;
+      font: 750 clamp(32px, 4vw, 48px)/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: -.06em;
+    }
+
+    .metric-value small {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .metric-note { margin: 0; color: var(--muted); font-size: 12px; }
+
+    .control-label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 13px;
+      color: #c5d3e2;
+      font-size: 13px;
+    }
+
+    .control-label output {
+      color: var(--cyan);
+      font: 700 13px/1 ui-monospace, monospace;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      margin: 0;
+      border-radius: 999px;
+      appearance: none;
+      background: linear-gradient(90deg, var(--cyan) var(--range-fill, 50%), rgba(255, 255, 255, .1) var(--range-fill, 50%));
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 19px;
+      height: 19px;
+      border: 4px solid #0f2035;
+      border-radius: 50%;
+      appearance: none;
+      background: var(--white);
+      box-shadow: 0 0 0 1px var(--cyan);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border: 4px solid #0f2035;
+      border-radius: 50%;
+      background: var(--white);
+      box-shadow: 0 0 0 1px var(--cyan);
+    }
+
+    input[type="range"]:focus-visible { outline: 2px solid var(--amber); outline-offset: 8px; }
+
+    .lab-caption {
+      margin: 18px 0 0;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .chapter {
+      width: min(calc(100% - 40px), var(--max));
+      margin: 0 auto;
+      padding: clamp(94px, 12vw, 160px) 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .chapter-grid {
+      display: grid;
+      grid-template-columns: .76fr 1.24fr;
+      gap: clamp(48px, 9vw, 130px);
+    }
+
+    .chapter-kicker {
+      position: sticky;
+      top: 116px;
+      align-self: start;
+    }
+
+    .chapter-no {
+      display: block;
+      margin-bottom: 30px;
+      color: var(--cyan);
+      font: 700 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .18em;
+    }
+
+    .chapter h2 {
+      margin-bottom: 22px;
+      font-size: clamp(34px, 4.4vw, 58px);
+      line-height: 1.13;
+      letter-spacing: -.045em;
+    }
+
+    .chapter-lead {
+      max-width: 430px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .content-stack { display: grid; gap: 24px; }
+
+    .content-card {
+      padding: clamp(25px, 4vw, 38px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(13, 26, 43, .72);
+    }
+
+    .content-card.accent-cyan { background: linear-gradient(145deg, var(--cyan-soft), rgba(13, 26, 43, .76)); }
+    .content-card.accent-amber { background: linear-gradient(145deg, var(--amber-soft), rgba(13, 26, 43, .76)); }
+
+    .card-label {
+      margin-bottom: 18px;
+      color: var(--muted);
+      font: 700 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .formula {
+      margin-bottom: 18px;
+      color: var(--white);
+      font: 560 clamp(28px, 4.5vw, 54px)/1.2 Georgia, "Times New Roman", serif;
+      letter-spacing: -.035em;
+      overflow-wrap: anywhere;
+    }
+
+    .formula sub { font-size: .5em; }
+    .formula-note { max-width: 620px; margin: 0; color: #aabbd0; }
+
+    .surprise-list { display: grid; gap: 0; }
+    .surprise-row {
+      display: grid;
+      grid-template-columns: minmax(105px, 1fr) minmax(84px, .8fr) minmax(110px, 1fr);
+      align-items: center;
+      gap: 18px;
+      min-height: 70px;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .surprise-row:first-child { border-top: 0; }
+    .surprise-row .prob { color: var(--muted); font-family: ui-monospace, monospace; }
+    .surprise-row strong { color: var(--amber); font: 700 16px/1 ui-monospace, monospace; text-align: right; }
+
+    .insight {
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      padding: 24px 0 0;
+      margin-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    .insight-mark {
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 202, 114, .35);
+      border-radius: 50%;
+      color: var(--amber);
+      font-family: Georgia, serif;
+      font-style: italic;
+    }
+
+    .insight p { margin: 0; color: #bdcadd; font-size: 14px; }
+
+    .chart-card { padding-bottom: 24px; }
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+    .chart-head h3 { margin: 0; font-size: 19px; }
+    .chart-head span { color: var(--muted); font: 12px/1.3 ui-monospace, monospace; }
+    .chart-wrap { position: relative; height: 250px; }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    .coding-demo {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+
+    .symbol-list { display: grid; gap: 10px; }
+    .symbol-row {
+      display: grid;
+      grid-template-columns: 46px 1fr auto;
+      align-items: center;
+      gap: 14px;
+      min-height: 52px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .025);
+    }
+    .symbol {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      aspect-ratio: 1;
+      border-radius: 9px;
+      color: #07151f;
+      background: var(--amber);
+      font-weight: 800;
+    }
+    .symbol-prob { color: var(--muted); font: 12px/1 ui-monospace, monospace; }
+    .code { color: var(--cyan); font: 700 15px/1 ui-monospace, monospace; letter-spacing: .12em; }
+
+    .compression-result {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 238px;
+      padding: 28px;
+      border-radius: 22px;
+      background: #091626;
+    }
+    .compression-result .big { margin-bottom: 8px; font: 760 clamp(38px, 5vw, 58px)/1 ui-monospace, monospace; letter-spacing: -.07em; }
+    .compression-result .big small { color: var(--muted); font-size: 14px; letter-spacing: 0; }
+    .compression-result p { margin: 0; color: var(--muted); font-size: 13px; }
+    .mini-equation { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); color: #b9c7d7; font: 12px/1.7 ui-monospace, monospace; }
+
+    .channel-panel { overflow: hidden; }
+    .channel-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 30px;
+    }
+    .channel-control { min-width: 0; }
+    .capacity { text-align: right; }
+    .capacity .metric-value { color: var(--amber); font-size: clamp(32px, 5vw, 52px); }
+
+    .bit-stream {
+      position: relative;
+      display: grid;
+      gap: 15px;
+      margin: 22px 0 4px;
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(3, 11, 21, .55);
+    }
+    .bit-row { display: grid; grid-template-columns: 60px repeat(10, 1fr); align-items: center; gap: 7px; }
+    .bit-row-label { color: var(--muted); font: 10px/1 ui-monospace, monospace; text-transform: uppercase; }
+    .bit {
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      aspect-ratio: 1;
+      border: 1px solid rgba(105, 232, 221, .18);
+      border-radius: 8px;
+      color: var(--cyan);
+      background: rgba(105, 232, 221, .055);
+      font: 700 clamp(10px, 1.4vw, 14px)/1 ui-monospace, monospace;
+      transition: color .2s ease, border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+    .bit.flipped {
+      color: #fff;
+      border-color: var(--coral);
+      background: rgba(255, 127, 115, .22);
+      transform: rotate(8deg);
+    }
+    .noise-note { margin: 18px 0 0; color: var(--muted); font-size: 13px; }
+    .noise-note strong { color: var(--coral); }
+
+    .venn-wrap {
+      position: relative;
+      min-height: 330px;
+      overflow: hidden;
+    }
+    .venn {
+      position: absolute;
+      inset: 35px 0 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .venn-circle {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(44vw, 260px);
+      aspect-ratio: 1;
+      border: 1px solid rgba(105, 232, 221, .38);
+      border-radius: 50%;
+      color: var(--cyan);
+      background: rgba(105, 232, 221, .1);
+      font: 700 13px/1 ui-monospace, monospace;
+    }
+    .venn-circle + .venn-circle {
+      margin-left: -72px;
+      color: var(--amber);
+      border-color: rgba(255, 202, 114, .38);
+      background: rgba(255, 202, 114, .1);
+    }
+    .venn-circle:first-child span { transform: translateX(-38px); }
+    .venn-circle:last-child span { transform: translateX(38px); }
+    .venn-shared {
+      position: absolute;
+      top: 118px;
+      left: 50%;
+      z-index: 2;
+      width: 100px;
+      transform: translateX(-50%);
+      color: var(--white);
+      text-align: center;
+      font: 700 11px/1.45 ui-monospace, monospace;
+    }
+
+    .applications {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .app-card {
+      min-height: 174px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .025);
+    }
+    .app-card b { display: block; margin-bottom: 14px; color: var(--cyan); font: 700 11px/1 ui-monospace, monospace; }
+    .app-card h3 { margin-bottom: 8px; font-size: 16px; }
+    .app-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+    .recap {
+      width: min(calc(100% - 40px), var(--max));
+      margin: 0 auto clamp(70px, 10vw, 130px);
+      padding: clamp(38px, 7vw, 80px);
+      border: 1px solid rgba(105, 232, 221, .2);
+      border-radius: 36px;
+      background:
+        radial-gradient(circle at 88% 20%, rgba(105, 232, 221, .12), transparent 18rem),
+        linear-gradient(140deg, #10253b, #0c192a);
+      box-shadow: var(--shadow);
+    }
+    .recap h2 { margin-bottom: 42px; font-size: clamp(32px, 5vw, 58px); line-height: 1.15; letter-spacing: -.045em; }
+    .recap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+    .recap-item .recap-no { display: block; margin-bottom: 18px; color: var(--amber); font: 700 12px/1 ui-monospace, monospace; }
+    .recap-item h3 { margin-bottom: 10px; font-size: 18px; }
+    .recap-item p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    footer {
+      width: min(calc(100% - 40px), var(--max));
+      margin: 0 auto;
+      padding: 28px 0 42px;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .fade-up {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .fade-up.is-visible { opacity: 1; transform: none; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-copy { max-width: 720px; }
+      .lab-card { max-width: 650px; }
+      .chapter-grid { grid-template-columns: 1fr; gap: 42px; }
+      .chapter-kicker { position: static; }
+      .chapter-lead { max-width: 680px; }
+      .applications, .recap-grid { grid-template-columns: 1fr; }
+      .app-card { min-height: auto; }
+      .recap-grid { gap: 28px; }
+    }
+
+    @media (max-width: 680px) {
+      .nav { width: min(calc(100% - 28px), var(--max)); height: 64px; }
+      .nav-links { display: none; }
+      .hero, .chapter, .recap, footer { width: min(calc(100% - 28px), var(--max)); }
+      .hero { padding-top: 62px; }
+      h1 { font-size: clamp(46px, 15vw, 66px); }
+      .entropy-display { grid-template-columns: 106px 1fr; gap: 19px; }
+      .coin-ring { width: 106px; }
+      .coin-ring::before { width: 76px; }
+      .coding-demo { grid-template-columns: 1fr; }
+      .channel-top { grid-template-columns: 1fr; }
+      .capacity { text-align: left; }
+      .bit-stream { padding: 17px 13px; }
+      .bit-row { grid-template-columns: 42px repeat(10, 1fr); gap: 4px; }
+      .bit { border-radius: 5px; }
+      .surprise-row { grid-template-columns: 1.05fr .8fr .9fr; gap: 8px; font-size: 12px; }
+      .venn-wrap { min-height: 250px; }
+      .venn-circle { width: 180px; }
+      .venn-shared { top: 91px; }
+      footer { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+      .fade-up { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress" aria-hidden="true"></div>
+  <header class="site-header" id="siteHeader">
+    <nav class="nav" aria-label="メインナビゲーション">
+      <a class="brand" href="#top" aria-label="情報理論入門 トップへ">
+        <span class="brand-mark" aria-hidden="true">I/01</span>
+        <span>情報理論入門</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#information">情報量</a></li>
+        <li><a href="#entropy">エントロピー</a></li>
+        <li><a href="#coding">圧縮</a></li>
+        <li><a href="#channel">通信路</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-text fade-up">
+        <p class="eyebrow">Information Theory / A Visual Primer</p>
+        <h1 id="hero-title">不確実さを、<br><em>測る。</em></h1>
+        <p class="hero-copy">情報とは、驚きの大きさです。情報理論は「どれだけ予測できなかったか」を数で表し、圧縮と通信の限界を明らかにします。</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#information">5分で全体像をつかむ</a>
+          <a class="button" href="#entropy-lab">まず触ってみる</a>
+        </div>
+      </div>
+
+      <aside class="lab-card fade-up" id="entropy-lab" aria-labelledby="lab-title">
+        <div class="lab-head">
+          <div>
+            <p class="overline">Interactive / Entropy Lab</p>
+            <h2 id="lab-title">コインの不確実さ</h2>
+          </div>
+          <span class="live-pill">LIVE</span>
+        </div>
+        <div class="entropy-display">
+          <div class="coin-ring" id="coinRing" aria-hidden="true"><span>H</span></div>
+          <div>
+            <div class="metric-label">エントロピー H(X)</div>
+            <div class="metric-value"><span id="entropyValue">1.000</span> <small>bit</small></div>
+            <p class="metric-note" id="entropyNote">予測が最も難しい状態</p>
+          </div>
+        </div>
+        <label class="control-label" for="coinProbability">
+          <span>表が出る確率 p</span>
+          <output id="coinOutput" for="coinProbability">50%</output>
+        </label>
+        <input id="coinProbability" type="range" min="1" max="99" value="50" aria-describedby="labHelp">
+        <p class="lab-caption" id="labHelp">中央の50%で情報量は最大。結果が偏るほど「次に何が出るか」を予測しやすくなります。</p>
+      </aside>
+    </section>
+
+    <section class="chapter" id="information" aria-labelledby="information-title">
+      <div class="chapter-grid">
+        <header class="chapter-kicker fade-up">
+          <span class="chapter-no">01 / SELF-INFORMATION</span>
+          <h2 id="information-title">珍しいほど、<br>情報は大きい。</h2>
+          <p class="chapter-lead">毎日起こることより、めったに起きないことを知ったときのほうが驚きは大きい。その直感を対数で表します。</p>
+        </header>
+        <div class="content-stack">
+          <article class="content-card accent-amber fade-up">
+            <p class="card-label">Definition</p>
+            <div class="formula" role="math" aria-label="I of x equals minus log base 2 of P of x">I(x) = −log<sub>2</sub> P(x)</div>
+            <p class="formula-note">事象 x の確率 P(x) が小さいほど、得られる情報量 I(x) は大きくなります。底を2にすることで、単位は <strong>bit</strong> になります。</p>
+          </article>
+
+          <article class="content-card fade-up">
+            <p class="card-label">How surprising?</p>
+            <div class="surprise-list" aria-label="確率と自己情報量の例">
+              <div class="surprise-row"><span>必ず起こる</span><span class="prob">P = 1</span><strong>0 bit</strong></div>
+              <div class="surprise-row"><span>コインの表</span><span class="prob">P = 1/2</span><strong>1 bit</strong></div>
+              <div class="surprise-row"><span>サイコロの1</span><span class="prob">P = 1/6</span><strong>2.585 bit</strong></div>
+              <div class="surprise-row"><span>1%の出来事</span><span class="prob">P = 1/100</span><strong>6.644 bit</strong></div>
+            </div>
+            <div class="insight">
+              <span class="insight-mark" aria-hidden="true">i</span>
+              <p>bit は「0か1か」だけではなく、<strong>不確実性がどれだけ減ったか</strong>を測る単位でもあります。</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="entropy" aria-labelledby="entropy-title">
+      <div class="chapter-grid">
+        <header class="chapter-kicker fade-up">
+          <span class="chapter-no">02 / ENTROPY</span>
+          <h2 id="entropy-title">平均すると、<br>どれくらい驚く？</h2>
+          <p class="chapter-lead">起こりうるすべての結果について、情報量を確率で重みづけした平均。それがエントロピーです。</p>
+        </header>
+        <div class="content-stack">
+          <article class="content-card accent-cyan fade-up">
+            <p class="card-label">Expected surprise</p>
+            <div class="formula" role="math" aria-label="H of X equals minus the sum of P of x log base 2 P of x">H(X) = −Σ P(x) log<sub>2</sub> P(x)</div>
+            <p class="formula-note">H(X) は情報源 X がもつ平均的な不確実性。公平なコインなら 1 bit、必ず同じ面が出るコインなら 0 bit です。</p>
+          </article>
+
+          <article class="content-card chart-card fade-up">
+            <div class="chart-head">
+              <h3>二値エントロピー関数</h3>
+              <span>H₂(p) / bits</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="entropyChart" role="img" aria-label="確率が50パーセントのとき1ビットで最大になる二値エントロピー曲線"></canvas>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="coding" aria-labelledby="coding-title">
+      <div class="chapter-grid">
+        <header class="chapter-kicker fade-up">
+          <span class="chapter-no">03 / SOURCE CODING</span>
+          <h2 id="coding-title">よく出るものを、<br>短く書く。</h2>
+          <p class="chapter-lead">確率の高い記号に短い符号を割り当てれば、平均のデータ量を減らせます。これが可逆圧縮の核です。</p>
+        </header>
+        <div class="content-stack">
+          <article class="content-card fade-up">
+            <p class="card-label">A perfect-fit prefix code</p>
+            <div class="coding-demo">
+              <div class="symbol-list" aria-label="記号の確率と符号">
+                <div class="symbol-row"><span class="symbol">A</span><span class="symbol-prob">P = 1/2</span><span class="code">0</span></div>
+                <div class="symbol-row"><span class="symbol">B</span><span class="symbol-prob">P = 1/4</span><span class="code">10</span></div>
+                <div class="symbol-row"><span class="symbol">C</span><span class="symbol-prob">P = 1/8</span><span class="code">110</span></div>
+                <div class="symbol-row"><span class="symbol">D</span><span class="symbol-prob">P = 1/8</span><span class="code">111</span></div>
+              </div>
+              <div class="compression-result">
+                <p class="overline">Average code length</p>
+                <div class="big">1.75 <small>bit / symbol</small></div>
+                <p>すべてを2 bitで表す固定長符号より、平均 12.5% 小さくなります。</p>
+                <div class="mini-equation">L = 1/2×1 + 1/4×2 + 1/8×3 + 1/8×3<br>H(X) = 1.75 bit → 理論限界に一致</div>
+              </div>
+            </div>
+          </article>
+          <article class="content-card accent-amber fade-up">
+            <p class="card-label">Shannon's source coding theorem</p>
+            <div class="formula" role="math" aria-label="H of X is less than or equal to L, which is less than H of X plus 1">H(X) ≤ L &lt; H(X) + 1</div>
+            <p class="formula-note">十分長いデータをまとめて符号化すれば、平均符号長 L をエントロピー H(X) にいくらでも近づけられます。ただし、情報を失わずに H(X) より小さくすることはできません。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="channel" aria-labelledby="channel-title">
+      <div class="chapter-grid">
+        <header class="chapter-kicker fade-up">
+          <span class="chapter-no">04 / NOISY CHANNEL</span>
+          <h2 id="channel-title">ノイズがあっても、<br>正しく送れる。</h2>
+          <p class="chapter-lead">誤りが起きる通信路でも、冗長性を賢く加えれば信頼できる通信は可能です。その速度には上限があります。</p>
+        </header>
+        <div class="content-stack">
+          <article class="content-card channel-panel fade-up">
+            <div class="channel-top">
+              <div class="channel-control">
+                <p class="card-label">Binary symmetric channel</p>
+                <label class="control-label" for="noiseProbability">
+                  <span>ビット反転確率 p</span>
+                  <output id="noiseOutput" for="noiseProbability">10%</output>
+                </label>
+                <input id="noiseProbability" type="range" min="0" max="50" value="10">
+              </div>
+              <div class="capacity">
+                <div class="metric-label">通信路容量 C</div>
+                <div class="metric-value"><span id="capacityValue">0.531</span> <small>bit/use</small></div>
+              </div>
+            </div>
+
+            <div class="bit-stream" aria-label="送信ビットと受信ビットの比較">
+              <div class="bit-row" id="sentBits"><span class="bit-row-label">SEND</span></div>
+              <div class="bit-row" id="receivedBits"><span class="bit-row-label">RECV</span></div>
+            </div>
+            <p class="noise-note" id="noiseNote">10ビット中 <strong>1ビット</strong>が反転する例。容量を下回る速度なら、誤り訂正符号で信頼性を高められます。</p>
+          </article>
+
+          <article class="content-card accent-cyan fade-up">
+            <p class="card-label">Channel capacity</p>
+            <div class="formula" role="math" aria-label="C equals 1 minus H base 2 of p">C = 1 − H<sub>2</sub>(p)</div>
+            <p class="formula-note">二元対称通信路では、反転確率 p が 0% なら 1 bit/use。50% では受信結果が完全にランダムになり、容量は 0 です。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter" id="mutual" aria-labelledby="mutual-title">
+      <div class="chapter-grid">
+        <header class="chapter-kicker fade-up">
+          <span class="chapter-no">05 / MUTUAL INFORMATION</span>
+          <h2 id="mutual-title">知ることで、<br>何が減る？</h2>
+          <p class="chapter-lead">ある変数を知ることで、別の変数の不確実性がどれだけ減るか。相互情報量は2つの変数が共有する情報を測ります。</p>
+        </header>
+        <div class="content-stack">
+          <article class="content-card accent-amber fade-up">
+            <p class="card-label">Shared information</p>
+            <div class="formula" role="math" aria-label="I of X semicolon Y equals H of X minus H of X given Y">I(X;Y) = H(X) − H(X|Y)</div>
+            <p class="formula-note">Y を知る前の不確実性 H(X) から、知った後に残る不確実性 H(X|Y) を引いた量です。独立なら 0、完全に対応するなら H(X) と同じになります。</p>
+          </article>
+          <article class="content-card venn-wrap fade-up" aria-label="XとYの共有情報を示す図">
+            <p class="card-label">Information diagram</p>
+            <div class="venn" aria-hidden="true">
+              <div class="venn-circle"><span>H(X)</span></div>
+              <div class="venn-circle"><span>H(Y)</span></div>
+              <div class="venn-shared">I(X;Y)<br>共有情報</div>
+            </div>
+          </article>
+          <div class="applications fade-up" aria-label="情報理論の応用例">
+            <article class="app-card"><b>01</b><h3>機械学習</h3><p>予測に役立つ特徴量の選択や、表現学習の評価に使われます。</p></article>
+            <article class="app-card"><b>02</b><h3>通信・圧縮</h3><p>5G、Wi-Fi、画像・音声圧縮の性能限界を設計の基準にします。</p></article>
+            <article class="app-card"><b>03</b><h3>統計・科学</h3><p>変数間の非線形な依存関係を、分布の形に縛られず捉えます。</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="recap fade-up" aria-labelledby="recap-title">
+      <p class="eyebrow">The whole idea in three steps</p>
+      <h2 id="recap-title">情報理論が教えてくれること。</h2>
+      <div class="recap-grid">
+        <article class="recap-item"><span class="recap-no">01</span><h3>驚きは測れる</h3><p>珍しい出来事ほど大きな情報をもち、平均的な驚きがエントロピーになります。</p></article>
+        <article class="recap-item"><span class="recap-no">02</span><h3>圧縮には限界がある</h3><p>情報源のエントロピーが、情報を失わない圧縮率の理論的な下限を決めます。</p></article>
+        <article class="recap-item"><span class="recap-no">03</span><h3>ノイズは克服できる</h3><p>通信路容量より低い速度なら、符号化によって誤りを限りなく小さくできます。</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>INFORMATION THEORY — A VISUAL PRIMER</span>
+    <span>確率を、意味のある「情報」に変える。</span>
+  </footer>
+
+  <script>
+    (() => {
+      const coinInput = document.getElementById('coinProbability');
+      const coinOutput = document.getElementById('coinOutput');
+      const entropyValue = document.getElementById('entropyValue');
+      const entropyNote = document.getElementById('entropyNote');
+      const coinRing = document.getElementById('coinRing');
+      const noiseInput = document.getElementById('noiseProbability');
+      const noiseOutput = document.getElementById('noiseOutput');
+      const capacityValue = document.getElementById('capacityValue');
+      const noiseNote = document.getElementById('noiseNote');
+      const sentBits = document.getElementById('sentBits');
+      const receivedBits = document.getElementById('receivedBits');
+      const sourceBits = [1, 0, 1, 1, 0, 0, 1, 0, 1, 0];
+      const flipOrder = [3, 7, 1, 9, 5];
+
+      const binaryEntropy = (p) => {
+        if (p <= 0 || p >= 1) return 0;
+        return -p * Math.log2(p) - (1 - p) * Math.log2(1 - p);
+      };
+
+      const updateCoin = () => {
+        const percent = Number(coinInput.value);
+        const h = binaryEntropy(percent / 100);
+        coinOutput.value = `${percent}%`;
+        entropyValue.textContent = h.toFixed(3);
+        coinRing.style.setProperty('--heads', `${percent}%`);
+        coinInput.style.setProperty('--range-fill', `${percent}%`);
+
+        const distance = Math.abs(50 - percent);
+        entropyNote.textContent = distance <= 4
+          ? '予測が最も難しい状態'
+          : distance <= 20
+            ? '少し偏りがあり、やや予測しやすい'
+            : '強く偏り、結果を予測しやすい';
+        drawEntropyChart(percent / 100);
+      };
+
+      const makeBit = (value, flipped = false) => {
+        const span = document.createElement('span');
+        span.className = `bit${flipped ? ' flipped' : ''}`;
+        span.textContent = String(value);
+        return span;
+      };
+
+      const updateChannel = () => {
+        const percent = Number(noiseInput.value);
+        const p = percent / 100;
+        const capacity = 1 - binaryEntropy(p);
+        const flipCount = Math.round(percent / 10);
+        const flipSet = new Set(flipOrder.slice(0, flipCount));
+
+        sentBits.querySelectorAll('.bit').forEach((bit) => bit.remove());
+        receivedBits.querySelectorAll('.bit').forEach((bit) => bit.remove());
+        sourceBits.forEach((bit, index) => {
+          sentBits.appendChild(makeBit(bit));
+          const flipped = flipSet.has(index);
+          receivedBits.appendChild(makeBit(flipped ? 1 - bit : bit, flipped));
+        });
+
+        noiseOutput.value = `${percent}%`;
+        capacityValue.textContent = capacity.toFixed(3);
+        noiseInput.style.setProperty('--range-fill', `${percent * 2}%`);
+        const countText = flipCount === 0 ? '反転はありません' : `<strong>${flipCount}ビット</strong>が反転する例`;
+        noiseNote.innerHTML = `10ビット中 ${countText}。容量を下回る速度なら、誤り訂正符号で信頼性を高められます。`;
+      };
+
+      const canvas = document.getElementById('entropyChart');
+      const drawEntropyChart = (activeP = .5) => {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(rect.width * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        const w = rect.width;
+        const h = rect.height;
+        const pad = { left: 38, right: 18, top: 14, bottom: 31 };
+        const cw = w - pad.left - pad.right;
+        const ch = h - pad.top - pad.bottom;
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(171, 196, 222, .13)';
+        ctx.lineWidth = 1;
+        [0, .5, 1].forEach((v) => {
+          const y = pad.top + ch * (1 - v);
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(w - pad.right, y);
+          ctx.stroke();
+        });
+
+        const gradient = ctx.createLinearGradient(pad.left, 0, w - pad.right, 0);
+        gradient.addColorStop(0, '#69e8dd');
+        gradient.addColorStop(.5, '#ffca72');
+        gradient.addColorStop(1, '#69e8dd');
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let i = 0; i <= 160; i += 1) {
+          const p = i / 160;
+          const value = binaryEntropy(p);
+          const x = pad.left + p * cw;
+          const y = pad.top + (1 - value) * ch;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        const activeH = binaryEntropy(activeP);
+        const ax = pad.left + activeP * cw;
+        const ay = pad.top + (1 - activeH) * ch;
+        ctx.setLineDash([4, 5]);
+        ctx.strokeStyle = 'rgba(255, 255, 255, .26)';
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax, pad.top + ch);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(ax, ay, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#08111f';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#71869f';
+        ctx.font = '11px ui-monospace, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('0', pad.left, h - 8);
+        ctx.fillText('.5', pad.left + cw / 2, h - 8);
+        ctx.fillText('1', pad.left + cw, h - 8);
+        ctx.textAlign = 'right';
+        ctx.fillText('1 bit', pad.left - 8, pad.top + 4);
+        ctx.fillText('0', pad.left - 8, pad.top + ch + 4);
+      };
+
+      const updateScroll = () => {
+        const doc = document.documentElement;
+        const max = doc.scrollHeight - window.innerHeight;
+        const ratio = max > 0 ? window.scrollY / max : 0;
+        document.getElementById('progress').style.width = `${ratio * 100}%`;
+        document.getElementById('siteHeader').classList.toggle('is-scrolled', window.scrollY > 12);
+      };
+
+      const observer = 'IntersectionObserver' in window
+        ? new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+              }
+            });
+          }, { threshold: .12 })
+        : null;
+
+      document.querySelectorAll('.fade-up').forEach((element) => {
+        if (observer) observer.observe(element); else element.classList.add('is-visible');
+      });
+
+      coinInput.addEventListener('input', updateCoin);
+      noiseInput.addEventListener('input', updateChannel);
+      window.addEventListener('resize', () => drawEntropyChart(Number(coinInput.value) / 100));
+      window.addEventListener('scroll', updateScroll, { passive: true });
+
+      updateCoin();
+      updateChannel();
+      updateScroll();
+    })();
+  </script>
+</body>
+</html>
